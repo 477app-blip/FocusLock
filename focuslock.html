@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FocusLock</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0a; --bg2:#111111; --bg3:#1a1a1a; --border:#2a2a2a;
+  --text:#f0ede8; --muted:#555550;
+  --accent:#e8ff47; --red:#ff4747; --blue:#47c9ff;
+  --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
+nav{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 14px;position:sticky;top:0;z-index:500;background:var(--bg);border-bottom:1px solid var(--border)}
+.logo{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--accent)}.logo span{color:var(--text)}
+.nav-tabs{display:flex;gap:3px;background:var(--bg3);border-radius:9px;padding:3px}
+.nav-tab{padding:6px 13px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);border:none;background:none;font-family:var(--sans);transition:all .15s}
+.nav-tab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+
+.page{display:none;padding:16px 16px 50px}
+.page.active{display:block}
+#page-blocked.active{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:72vh;text-align:center}
+
+.sec{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:18px 0 9px}
+
+.hero{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:12px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-50px;right:-50px;width:150px;height:150px;border-radius:50%;background:var(--accent);opacity:.03;pointer-events:none}
+.sbadge{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;margin-bottom:12px}
+.sbadge.off{background:var(--bg3);border:1px solid var(--border);color:var(--muted)}
+.sbadge.on{background:rgba(232,255,71,.1);border:1px solid rgba(232,255,71,.25);color:var(--accent)}
+.sbadge.warn{background:rgba(255,71,71,.1);border:1px solid rgba(255,71,71,.25);color:var(--red)}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-off{background:var(--muted)}.dot-on{background:var(--accent);box-shadow:0 0 5px var(--accent)}.dot-warn{background:var(--red)}
+.snum{font-family:var(--mono);font-size:52px;font-weight:700;color:var(--accent);line-height:1}
+.sunit{font-size:14px;color:var(--muted);font-weight:300;margin-left:6px}
+.ssub{font-size:12px;color:var(--muted);margin:4px 0 16px}
+
+.btn{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;border:none;transition:opacity .15s,transform .1s}
+.btn:active{opacity:.85;transform:scale(.98)}.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-g{background:var(--accent);color:#0a0a0a}
+.btn-r{background:rgba(255,71,71,.12);color:var(--red);border:1px solid rgba(255,71,71,.3)}
+.btn-gh{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+
+.lock-info{background:rgba(255,71,71,.07);border:1px solid rgba(255,71,71,.2);border-radius:10px;padding:11px 13px;margin-top:10px;display:none}
+.lock-info.show{display:block}
+.lock-lbl{font-family:var(--mono);font-size:10px;color:var(--red);letter-spacing:1.5px;margin-bottom:4px}
+.lock-cd{font-family:var(--mono);font-size:17px;color:var(--text)}
+
+.srow{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:7px}
+.srow label{font-size:11px;color:var(--muted);min-width:42px;font-family:var(--mono)}
+.srow input[type=time]{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:19px;padding:7px 10px;color-scheme:dark}
+
+.aitem{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:7px}
+.ainfo{display:flex;align-items:center;gap:11px}
+.aicon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.aicon.ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)}
+.aicon.yt{background:#ff0000}.aicon.tt{background:#010101;border:1px solid var(--border)}
+.aname{font-size:13px;font-weight:500}.apkg{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+
+.tog{width:40px;height:24px;background:var(--bg3);border:1px solid var(--border);border-radius:100px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--accent);border-color:var(--accent)}
+.tog::after{content:'';position:absolute;width:16px;height:16px;background:var(--muted);border-radius:50%;top:3px;left:3px;transition:transform .2s}
+.tog.on::after{transform:translateX(16px);background:#0a0a0a}
+
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:2px}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px}
+.sv{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1.1}
+.sv.g{color:var(--accent)}.sv.r{color:var(--red)}
+.sl{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* CALENDAR */
+.calwrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px 11px}
+.calhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.calmon{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text)}
+.calnav{display:flex;gap:5px}
+.calnbtn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 10px;font-size:14px;cursor:pointer;font-family:var(--mono);line-height:1.3}
+.calnbtn:active{background:var(--border)}
+.caldow{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.cdow{text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);padding:2px 0}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cc{aspect-ratio:1/1;border-radius:4px;background:var(--bg3);border:1px solid var(--border);position:relative;min-width:0}
+.cc .n{position:absolute;bottom:2px;right:3px;font-family:var(--mono);font-size:8px;color:var(--muted);line-height:1;opacity:.55}
+.cc.empty{background:transparent;border-color:transparent}
+.cc.future{opacity:.18}
+.cc.aday{background:var(--accent);border-color:var(--accent)}.cc.aday .n{color:#0a0a0a;opacity:.45}
+.cc.tday{border:2px solid var(--accent);background:rgba(232,255,71,.07)}.cc.tday .n{color:var(--accent);opacity:1}
+.cc.att{border-color:rgba(255,71,71,.5);background:rgba(255,71,71,.09)}.cc.att .n{color:var(--red);opacity:1}
+.calleg{display:flex;gap:12px;margin-top:9px;flex-wrap:wrap}
+.clli{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);font-family:var(--mono)}
+.cllb{width:10px;height:10px;border-radius:2px}
+
+.logitem{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
+.lapp{font-size:13px;font-weight:500}.ldate{font-size:11px;color:var(--muted);margin-top:1px}
+.ltime{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+.ifield{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 12px;outline:none}
+.ifield:focus{border-color:var(--accent)}.ifield::placeholder{color:var(--muted)}
+.wabtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:#25d366;color:#0a0a0a;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;margin-top:9px;text-decoration:none}
+.qitem{font-size:12px;color:var(--muted);font-style:italic;line-height:1.5;padding:8px 30px 8px 11px;background:var(--bg3);border-radius:7px;border-left:2px solid var(--accent);position:relative;margin-bottom:6px}
+.qdel{position:absolute;top:7px;right:7px;cursor:pointer;color:var(--red);font-size:11px;background:none;border:none}
+
+.notice{border-radius:9px;padding:11px 12px;font-size:12px;line-height:1.6;margin-bottom:9px}
+.notice strong{font-weight:700}
+.nb{background:rgba(71,201,255,.06);border:1px solid rgba(71,201,255,.2);color:var(--blue)}
+.ng{background:rgba(232,255,71,.04);border:1px solid rgba(232,255,71,.18);color:#bdd438}
+.nr{background:rgba(255,71,71,.06);border:1px solid rgba(255,71,71,.2);color:#cc6060}
+.ngr{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted)}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;display:none;align-items:flex-end}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:22px 22px 0 0;padding:18px 16px 40px;width:100%;max-height:88vh;overflow-y:auto}
+.mhandle{width:32px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.mtitle{font-family:var(--mono);font-size:15px;font-weight:700;margin-bottom:8px;color:var(--accent)}
+.mtitle.r{color:var(--red)}
+.mbody{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:16px}
+.mbox{background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:9px}
+.mboxl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px}
+.mcd{font-family:var(--mono);font-size:21px;color:var(--text);text-align:center;padding:8px 0}
+
+.bicon{font-size:50px;margin-bottom:18px}
+.btitle{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--accent);margin-bottom:10px;line-height:1.25}
+.bquote{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px;max-width:280px}
+.bstreak{font-family:var(--mono);font-size:44px;font-weight:700;color:var(--text)}
+.bslbl{font-size:12px;color:var(--muted);margin-bottom:24px}
+.bwa{display:flex;align-items:center;gap:7px;padding:12px 26px;background:rgba(255,71,71,.1);border:1px solid rgba(255,71,71,.25);border-radius:12px;font-size:13px;font-weight:500;color:var(--red);text-decoration:none;margin-top:7px}
+
+hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Focus<span>Lock</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')">Inicio</button>
+    <button class="nav-tab" onclick="showPage('stats')">Stats</button>
+    <button class="nav-tab" onclick="showPage('config')">Config</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="sec" style="margin-top:0">Estado</div>
+    <div class="sbadge off" id="sbadge"><div class="dot dot-off" id="sdot"></div><span id="stxt">Inactivo</span></div>
+    <div style="display:flex;align-items:baseline"><div class="snum" id="snum">0</div><div class="sunit">días de racha</div></div>
+    <div class="ssub" id="ssub">Activa el bloqueo para empezar</div>
+    <button class="btn btn-g" id="mbtn" onclick="toggleBlock()">Activar FocusLock</button>
+    <div class="lock-info" id="lkinfo">
+      <div class="lock-lbl" id="lklbl">⏳ No se puede desactivar hasta</div>
+      <div class="lock-cd" id="lkcd">—</div>
+    </div>
+  </div>
+
+  <div class="sec">Horario de bloqueo</div>
+  <div class="notice nr" id="lk-notice" style="display:none">🔒 FocusLock activo — horario bloqueado</div>
+  <div class="srow"><label>Inicio</label><input type="time" id="tstart" value="22:00" onchange="saveSchedule()"></div>
+  <div class="srow"><label>Fin</label><input type="time" id="tend" value="08:00" onchange="saveSchedule()"></div>
+
+  <div class="sec">Apps bloqueadas</div>
+  <div class="aitem">
+    <div class="ainfo"><div class="aicon ig">📸</div><div><div class="aname">Instagram</div><div class="apkg">com.instagram.android</div></div></div>
+    <div class="tog on" id="tog-ig" onclick="toggleApp('ig')"></div>
+  </div>
+  <div class="aitem">
+    <div class="ainfo"><div class="aicon yt">▶</div><div><div class="aname">YouTube</div><div class="apkg">com.google.android.youtube</div></div></div>
+    <div class="tog on" id="tog-yt" onclick="toggleApp('yt')"></div>
+  </div>
+  <div class="aitem">
+    <div class="ainfo"><div class="aicon tt">🎵</div><div><div class="aname">TikTok</div><div class="apkg">com.zhiliaoapp.musically</div></div></div>
+    <div class="tog on" id="tog-tt" onclick="toggleApp('tt')"></div>
+  </div>
+  <button class="btn btn-gh" style="margin-top:12px;font-size:12px;color:var(--blue);border-color:rgba(71,201,255,.25)" onclick="showBlockedScreen('Instagram')">🧪 Simular pantalla de bloqueo</button>
+  <button id="install-btn" class="btn btn-g" style="margin-top:8px;display:none" onclick="installApp()">📲 Instalar como app</button>
+</div>
+
+<!-- STATS -->
+<div class="page" id="page-stats">
+  <div class="sec" style="margin-top:0">Total acumulado</div>
+  <div class="sgrid">
+    <div class="sc"><div class="sv g" id="v-streak">0</div><div class="sl">días de racha</div></div>
+    <div class="sc"><div class="sv" id="v-blocked">0</div><div class="sl">intentos bloqueados</div></div>
+    <div class="sc"><div class="sv" id="v-hours">0h</div><div class="sl">horas protegidas</div></div>
+    <div class="sc"><div class="sv r" id="v-fails">0</div><div class="sl">veces que cediste</div></div>
+  </div>
+
+  <div class="sec">Calendario de racha</div>
+  <div class="calwrap">
+    <div class="calhead">
+      <div class="calmon" id="calmon">—</div>
+      <div class="calnav">
+        <button class="calnbtn" onclick="calPrev()">‹</button>
+        <button class="calnbtn" onclick="calNext()">›</button>
+      </div>
+    </div>
+    <div class="caldow">
+      <div class="cdow">L</div><div class="cdow">M</div><div class="cdow">M</div><div class="cdow">J</div>
+      <div class="cdow">V</div><div class="cdow">S</div><div class="cdow">D</div>
+    </div>
+    <div class="calgrid" id="calgrid"></div>
+    <div class="calleg">
+      <div class="clli"><div class="cllb" style="background:var(--accent)"></div>Racha activa</div>
+      <div class="clli"><div class="cllb" style="background:rgba(255,71,71,.25);border:1px solid rgba(255,71,71,.5)"></div>Intento</div>
+      <div class="clli"><div class="cllb" style="background:var(--bg3);border:1px solid var(--border)"></div>Sin datos</div>
+    </div>
+  </div>
+
+  <div class="sec">Últimos intentos</div>
+  <div id="loglist"><div style="font-size:13px;color:var(--muted);text-align:center;padding:16px 0">Sin intentos registrados</div></div>
+
+  <hr>
+  <button class="btn btn-r" style="font-size:13px;padding:12px" onclick="openModal('mresetstats')">↺ Resetear estadísticas</button>
+</div>
+
+<!-- CONFIG -->
+<div class="page" id="page-config">
+  <div class="sec" style="margin-top:0">Accountability</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:500;margin-bottom:3px">Contacto</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:9px">Al solicitar desactivar, se abrirá WhatsApp para avisarle.</div>
+    <input class="ifield" id="accname" type="text" placeholder="Nombre">
+    <input class="ifield" id="accphone" type="tel" placeholder="+34612345678" style="margin-top:7px">
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Número sin espacios, con prefijo (+34…)</div>
+  </div>
+
+  <div class="sec">Frases motivacionales</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px;margin-bottom:10px">
+    <div id="quoteslist"></div>
+    <button class="btn btn-gh" style="font-size:12px;padding:10px;margin-top:5px" onclick="addQuote()">+ Añadir frase</button>
+  </div>
+
+  <div class="sec">Instrucciones Android</div>
+  <div class="notice ngr"><strong>Paso 1 — Instalar como PWA:</strong><br>En Chrome → menú ⋮ → "Añadir a pantalla de inicio" → "Instalar". Aparece un icono real en tu escritorio.</div>
+  <div class="notice ng"><strong>Paso 2 — Permiso de superposición:</strong><br>Ajustes → Apps → Ver todas → Chrome → Permisos → "Mostrar sobre otras apps" → Activar.</div>
+  <div class="notice nb"><strong>Paso 3 — Digital Wellbeing (recomendado):</strong><br>Ajustes → Bienestar digital → Panel de control → selecciona la app → "Añadir temporizador". El método más fiable sin permisos de terceros.</div>
+  <div class="notice nr"><strong>⚠️ Android 13+ sideload:</strong><br>Las apps fuera de la Play Store tienen Accesibilidad restringida. Usa Digital Wellbeing si el bloqueo no funciona. En Android 17+ con "Protección Avanzada" está bloqueado a nivel de sistema.</div>
+
+  <hr>
+  <button class="btn btn-r" style="font-size:13px;padding:12px" onclick="openModal('mresetall')">🗑 Borrar todos los datos</button>
+  <div style="height:28px"></div>
+</div>
+
+<!-- BLOCKED PAGE -->
+<div class="page" id="page-blocked">
+  <div class="bicon">🔒</div>
+  <div class="btitle">App bloqueada</div>
+  <div class="bquote" id="bquote">Estás en modo Focus. Tú mismo activaste esto.</div>
+  <div class="bstreak" id="bstreak">0</div>
+  <div class="bslbl">días de racha — no lo rompas</div>
+  <button class="btn btn-gh" style="width:auto;padding:12px 26px" onclick="showPage('home')">← Volver</button>
+  <a class="bwa" id="bwa" href="#" style="display:none">📞 Avisar a mi contacto</a>
+</div>
+
+<!-- MODAL ACTIVATE -->
+<div class="overlay" id="mactivate">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle">⚡ Activar FocusLock</div>
+    <div class="mbody">Una vez activado, <strong style="color:var(--red)">no podrás desactivarlo hasta 7 días después de solicitarlo</strong>.</div>
+    <div class="mbox"><div class="mboxl">RESUMEN</div><div style="font-size:13px;color:var(--text);line-height:1.8" id="actsum">—</div></div>
+    <button class="btn btn-g" style="margin-bottom:7px" onclick="confirmActivate()">Sí, activar — estoy listo</button>
+    <button class="btn btn-gh" onclick="closeModal('mactivate')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL DEACTIVATE -->
+<div class="overlay" id="mdeact">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle r">🔒 Cuenta atrás iniciada</div>
+    <div class="mbody">Has solicitado desactivar FocusLock. Seguirá bloqueando durante 7 días y se desactivará solo al terminar.</div>
+    <div class="mbox" style="background:rgba(255,71,71,.05);border:1px solid rgba(255,71,71,.15)">
+      <div class="mboxl" style="color:var(--red)">TIEMPO RESTANTE</div>
+      <div class="mcd" id="mdeactcd">—</div>
+    </div>
+    <div id="wadeact"></div>
+    <button class="btn btn-gh" onclick="closeModal('mdeact')">Entendido</button>
+  </div>
+</div>
+
+<!-- MODAL RESET STATS -->
+<div class="overlay" id="mresetstats">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle r">↺ Resetear estadísticas</div>
+    <div class="mbody">Se borrarán racha, intentos, horas, calendario y log. Tu contacto y configuración no se tocarán.</div>
+    <button class="btn btn-r" style="margin-bottom:7px" onclick="doResetStats()">Sí, resetear todo</button>
+    <button class="btn btn-gh" onclick="closeModal('mresetstats')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL RESET ALL -->
+<div class="overlay" id="mresetall">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <div class="mtitle r">🗑 Borrar todos los datos</div>
+    <div class="mbody">Se borrará absolutamente todo: racha, estadísticas, contacto y configuración. No se puede deshacer.</div>
+    <button class="btn btn-r" style="margin-bottom:7px" onclick="doResetAll()">Sí, borrar todo</button>
+    <button class="btn btn-gh" onclick="closeModal('mresetall')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ── STORAGE ──────────────────────────────────────────────────
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem('fl_'+k)); } catch(e) { return null; } },
+  set: (k,v) => { try { localStorage.setItem('fl_'+k, JSON.stringify(v)); } catch(e) {} }
+};
+
+// ── DEFAULTS ─────────────────────────────────────────────────
+const DS = () => ({
+  active:false, activatedAt:null, unlockAt:null, deactivateRequestedAt:null,
+  streakStart:null, streak:0,
+  appsEnabled:{ig:true,yt:true,tt:true},
+  blockedAttempts:0, fails:0, hoursProtected:0,
+  attemptLog:[], dailyData:{}
+});
+const DC = () => ({
+  timeStart:'22:00', timeEnd:'08:00', accName:'', accPhone:'',
+  quotes:[
+    'El scroll infinito fue diseñado para hacerte adicto. Tú eres más listo que un algoritmo.',
+    'Cada vez que resistes, demuestras quién manda en tu mente.',
+    'Las personas que admiras no pasan 3 horas en TikTok.'
+  ]
+});
+
+// ── LOAD + SANITIZE ───────────────────────────────────────────
+function loadState() {
+  const raw = LS.get('state');
+  const def = DS();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return def;
+  const s = Object.assign({}, def, raw);
+  // Sanitize every field that could crash
+  if (!s.dailyData || typeof s.dailyData !== 'object' || Array.isArray(s.dailyData)) s.dailyData = {};
+  if (!Array.isArray(s.attemptLog)) s.attemptLog = [];
+  if (!s.appsEnabled || typeof s.appsEnabled !== 'object' || Array.isArray(s.appsEnabled)) s.appsEnabled = {ig:true,yt:true,tt:true};
+  ['blockedAttempts','fails','hoursProtected','streak'].forEach(k => { if (typeof s[k] !== 'number') s[k] = 0; });
+  return s;
+}
+function loadConfig() {
+  const raw = LS.get('config');
+  const def = DC();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return def;
+  const c = Object.assign({}, def, raw);
+  if (!Array.isArray(c.quotes)) c.quotes = def.quotes;
+  return c;
+}
+
+let state  = loadState();
+let config = loadConfig();
+const ss = () => LS.set('state', state);
+const sc = () => LS.set('config', config);
+
+// ── UTILS ─────────────────────────────────────────────────────
+function inBlock() {
+  const n = new Date(), cur = n.getHours()*60+n.getMinutes();
+  const [sh,sm] = config.timeStart.split(':').map(Number);
+  const [eh,em] = config.timeEnd.split(':').map(Number);
+  const s=sh*60+sm, e=eh*60+em;
+  return s<=e ? cur>=s&&cur<=e : cur>=s||cur<=e;
+}
+function fmtMs(ms) {
+  if (ms<=0) return '0s';
+  const d=Math.floor(ms/86400000), h=Math.floor((ms%86400000)/3600000),
+        m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
+  if (d>0) return `${d}d ${h}h ${m}m`;
+  if (h>0) return `${h}h ${m}m ${s}s`;
+  return `${m}m ${s}s`;
+}
+function tkey() {
+  const n=new Date();
+  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+}
+function toast(msg) {
+  let t=document.getElementById('_t');
+  if (!t) {
+    t=document.createElement('div'); t.id='_t';
+    Object.assign(t.style,{position:'fixed',bottom:'76px',left:'50%',transform:'translateX(-50%)',
+      background:'#1a1a1a',border:'1px solid rgba(255,71,71,.4)',color:'#ff4747',
+      fontFamily:"'Space Mono',monospace",fontSize:'11px',padding:'8px 15px',borderRadius:'9px',
+      zIndex:'9999',pointerEvents:'none',transition:'opacity .3s',whiteSpace:'nowrap'});
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._x); t._x=setTimeout(()=>t.style.opacity='0',2200);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const idx = ['home','stats','config'].indexOf(p);
+  if (idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if (p==='stats')  renderStats();
+  if (p==='config') renderConfig();
+}
+
+// ── UI UPDATE ─────────────────────────────────────────────────
+function updateUI() {
+  const now = Date.now();
+  // Auto-expire
+  if (state.active && state.unlockAt && state.unlockAt <= now) {
+    state.active=false; state.unlockAt=null; state.activatedAt=null; state.deactivateRequestedAt=null; ss();
+  }
+
+  const badge=document.getElementById('sbadge'), dot=document.getElementById('sdot');
+  const stxt=document.getElementById('stxt'), btn=document.getElementById('mbtn');
+  const lkinfo=document.getElementById('lkinfo'), lkcd=document.getElementById('lkcd'), lklbl=document.getElementById('lklbl');
+
+  document.getElementById('snum').textContent = state.streak;
+
+  if (state.active) {
+    const counting = !!(state.unlockAt && state.unlockAt > now);
+    badge.className = counting ? 'sbadge warn' : 'sbadge on';
+    dot.className   = counting ? 'dot dot-warn' : 'dot dot-on';
+    stxt.textContent = counting ? 'Desactivando…' : (inBlock() ? 'Bloqueando ahora' : 'Activo');
+    document.getElementById('ssub').textContent = `Activo desde ${new Date(state.activatedAt).toLocaleDateString('es-ES')}`;
+    if (counting) {
+      const cd=fmtMs(state.unlockAt-now);
+      btn.textContent=`Se desactiva en ${cd}`; btn.className='btn btn-r'; btn.disabled=true;
+      lklbl.textContent='⏳ Cuenta atrás para desactivar'; lkcd.textContent=cd; lkinfo.classList.add('show');
+    } else {
+      btn.textContent='Solicitar desactivación (7 días)'; btn.className='btn btn-r'; btn.disabled=false;
+      lkinfo.classList.remove('show');
+    }
+  } else {
+    badge.className='sbadge off'; dot.className='dot dot-off'; stxt.textContent='Inactivo';
+    btn.textContent='Activar FocusLock'; btn.className='btn btn-g'; btn.disabled=false;
+    lkinfo.classList.remove('show');
+    document.getElementById('ssub').textContent = state.streak>0 ? `Última racha: ${state.streak} días` : 'Activa el bloqueo para empezar';
+  }
+
+  ['ig','yt','tt'].forEach(a => {
+    const el=document.getElementById('tog-'+a);
+    el.classList.toggle('on', !!state.appsEnabled[a]);
+    el.style.opacity=state.active?'.4':'1';
+    el.style.cursor=state.active?'not-allowed':'pointer';
+  });
+  ['tstart','tend'].forEach(id => {
+    const el=document.getElementById(id);
+    if (el) { el.disabled=state.active; el.style.opacity=state.active?'.4':'1'; }
+  });
+  document.getElementById('tstart').value=config.timeStart;
+  document.getElementById('tend').value=config.timeEnd;
+  document.getElementById('lk-notice').style.display=state.active?'block':'none';
+}
+
+// ── TOGGLE BLOCK ─────────────────────────────────────────────
+function toggleBlock() {
+  if (!state.active) {
+    const apps=[];
+    if (state.appsEnabled.ig) apps.push('Instagram');
+    if (state.appsEnabled.yt) apps.push('YouTube');
+    if (state.appsEnabled.tt) apps.push('TikTok');
+    document.getElementById('actsum').innerHTML =
+      `Apps: <strong style="color:var(--text)">${apps.join(', ')}</strong><br>`+
+      `Horario: <strong style="color:var(--text)">${config.timeStart} → ${config.timeEnd}</strong><br>`+
+      `Mínimo para desactivar: <strong style="color:var(--red)">7 días</strong>`;
+    openModal('mactivate');
+  } else {
+    if (state.unlockAt && state.unlockAt > Date.now()) return;
+    const ua = Date.now() + 7*24*60*60*1000;
+    state.unlockAt=ua; state.deactivateRequestedAt=Date.now(); ss();
+    document.getElementById('mdeactcd').textContent=fmtMs(ua-Date.now());
+    if (config.accPhone) {
+      const msg=encodeURIComponent(`⚠️ Hola ${config.accName||''}, acabo de solicitar desactivar FocusLock. 7 días de espera. ¡Ayúdame!`);
+      document.getElementById('wadeact').innerHTML=
+        `<a class="wabtn" style="margin-bottom:7px" href="https://wa.me/${config.accPhone.replace(/\s+/g,'')}?text=${msg}">📱 Avisar a ${config.accName||'mi contacto'}</a>`;
+    } else { document.getElementById('wadeact').innerHTML=''; }
+    openModal('mdeact');
+    updateUI();
+  }
+}
+function confirmActivate() {
+  state.active=true; state.activatedAt=Date.now(); state.unlockAt=null;
+  state.streakStart=Date.now(); state.streak=0; ss();
+  closeModal('mactivate'); updateUI();
+}
+
+// ── APP TOGGLE ────────────────────────────────────────────────
+function toggleApp(app) {
+  if (state.active) { toast('🔒 FocusLock activo'); return; }
+  state.appsEnabled[app]=!state.appsEnabled[app]; ss();
+  document.getElementById('tog-'+app).classList.toggle('on', state.appsEnabled[app]);
+}
+function saveSchedule() {
+  if (state.active) { toast('🔒 Horario bloqueado'); updateUI(); return; }
+  config.timeStart=document.getElementById('tstart').value;
+  config.timeEnd=document.getElementById('tend').value; sc();
+}
+
+// ── ATTEMPTS ─────────────────────────────────────────────────
+function logAttempt(app) {
+  if (!state.dailyData || typeof state.dailyData !== 'object' || Array.isArray(state.dailyData)) state.dailyData={};
+  const n=new Date();
+  state.blockedAttempts=(state.blockedAttempts||0)+1;
+  state.attemptLog.unshift({app, time:n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}), date:n.toLocaleDateString('es-ES')});
+  if (state.attemptLog.length>50) state.attemptLog.pop();
+  const k=tkey(); state.dailyData[k]=(state.dailyData[k]||0)+1; ss();
+}
+
+// ── BLOCKED SCREEN ────────────────────────────────────────────
+function showBlockedScreen(app) {
+  logAttempt(app);
+  const q=(config.quotes&&config.quotes.length)?config.quotes:['Tú puedes.'];
+  document.getElementById('bquote').textContent=q[Math.floor(Math.random()*q.length)];
+  document.getElementById('bstreak').textContent=state.streak;
+  if (config.accPhone) {
+    const msg=encodeURIComponent(`⚠️ ${config.accName||''} intenté abrir ${app} pero FocusLock lo bloqueó.`);
+    const wa=document.getElementById('bwa');
+    wa.href=`https://wa.me/${config.accPhone.replace(/\s+/g,'')}?text=${msg}`; wa.style.display='flex';
+  } else { document.getElementById('bwa').style.display='none'; }
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-blocked').classList.add('active');
+}
+
+// ── CALENDAR ─────────────────────────────────────────────────
+let calY=new Date().getFullYear(), calM=new Date().getMonth();
+function calPrev() { calM--; if(calM<0){calM=11;calY--;} renderCalendar(); }
+function calNext() {
+  const n=new Date();
+  if (calY>n.getFullYear()||(calY===n.getFullYear()&&calM>=n.getMonth())) return;
+  calM++; if(calM>11){calM=0;calY++;} renderCalendar();
+}
+function renderCalendar() {
+  // Guard dailyData
+  if (!state.dailyData || typeof state.dailyData !== 'object' || Array.isArray(state.dailyData)) state.dailyData={};
+
+  const MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('calmon').textContent=`${MN[calM]} ${calY}`;
+
+  const now=new Date();
+  const todayMid=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const tk=tkey();
+
+  let actMid=null;
+  if (state.streakStart) {
+    const a=new Date(state.streakStart);
+    actMid=new Date(a.getFullYear(),a.getMonth(),a.getDate());
+  }
+
+  const dim=new Date(calY,calM+1,0).getDate();
+  let off=new Date(calY,calM,1).getDay(); // 0=Sun
+  off = off===0 ? 6 : off-1; // Mon=0
+
+  let html='';
+  for (let i=0;i<off;i++) html+='<div class="cc empty"></div>';
+
+  for (let d=1;d<=dim;d++) {
+    const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cm=new Date(calY,calM,d);
+    const isT=ds===tk, isF=cm>todayMid;
+    const att=state.dailyData[ds]||0;
+    const isA=!isF&&state.active&&actMid&&cm>=actMid;
+
+    let cls='cc';
+    if (isF) cls+=' future';
+    else if (isA) cls+=' aday';
+    else if (isT) cls+=' tday';
+    if (att>0&&!isA) cls+=' att';
+
+    html+=`<div class="${cls}" title="${att>0?att+' intento(s)':ds}"><span class="n">${d}</span></div>`;
+  }
+
+  const total=off+dim, rem=total%7;
+  if (rem!==0) for(let i=0;i<7-rem;i++) html+='<div class="cc empty"></div>';
+  document.getElementById('calgrid').innerHTML=html;
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function renderStats() {
+  document.getElementById('v-streak').textContent=state.streak;
+  document.getElementById('v-blocked').textContent=state.blockedAttempts;
+  document.getElementById('v-hours').textContent=Math.round(state.hoursProtected)+'h';
+  document.getElementById('v-fails').textContent=state.fails;
+  calY=new Date().getFullYear(); calM=new Date().getMonth();
+  renderCalendar();
+  const log=document.getElementById('loglist');
+  if (!state.attemptLog.length) {
+    log.innerHTML='<div style="font-size:13px;color:var(--muted);text-align:center;padding:16px 0">Sin intentos registrados</div>';
+  } else {
+    log.innerHTML=state.attemptLog.slice(0,25).map(a=>
+      `<div class="logitem"><div><div class="lapp">${a.app}</div><div class="ldate">${a.date}</div></div><div class="ltime">${a.time}</div></div>`
+    ).join('');
+  }
+}
+
+// ── RESETS ────────────────────────────────────────────────────
+function doResetStats() {
+  state.streak=0; state.streakStart=state.active?Date.now():null;
+  state.blockedAttempts=0; state.hoursProtected=0; state.fails=0;
+  state.dailyData={}; state.attemptLog=[]; ss();
+  closeModal('mresetstats'); renderStats(); updateUI();
+}
+function doResetAll() {
+  state=DS(); config=DC(); ss(); sc();
+  closeModal('mresetall'); updateUI(); renderConfig();
+}
+
+// ── CONFIG ────────────────────────────────────────────────────
+function renderConfig() {
+  document.getElementById('accname').value=config.accName||'';
+  document.getElementById('accphone').value=config.accPhone||'';
+  document.getElementById('quoteslist').innerHTML=(config.quotes||[]).map((q,i)=>
+    `<div class="qitem">"${q}"<button class="qdel" onclick="removeQuote(${i})">✕</button></div>`
+  ).join('');
+}
+function addQuote() {
+  const q=prompt('Escribe tu frase motivacional:');
+  if (q&&q.trim()) { config.quotes.push(q.trim()); sc(); renderConfig(); }
+}
+function removeQuote(i) { config.quotes.splice(i,1); sc(); renderConfig(); }
+document.getElementById('accname').addEventListener('input', ()=>{ config.accName=document.getElementById('accname').value; sc(); });
+document.getElementById('accphone').addEventListener('input', ()=>{ config.accPhone=document.getElementById('accphone').value; sc(); });
+
+// ── MODALS ────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(el => {
+  el.addEventListener('click', e=>{ if(e.target===el) el.classList.remove('open'); });
+});
+
+// ── LINK INTERCEPT ────────────────────────────────────────────
+document.addEventListener('click', e => {
+  const a=e.target.closest('a[href]');
+  if (!a||!state.active||!inBlock()) return;
+  const h=a.href||'';
+  if (h.includes('instagram.com')&&state.appsEnabled.ig) { e.preventDefault(); showBlockedScreen('Instagram'); }
+  else if ((h.includes('youtube.com')||h.includes('youtu.be'))&&state.appsEnabled.yt) { e.preventDefault(); showBlockedScreen('YouTube'); }
+  else if (h.includes('tiktok.com')&&state.appsEnabled.tt) { e.preventDefault(); showBlockedScreen('TikTok'); }
+});
+
+// ── STREAK UPDATER ────────────────────────────────────────────
+function tickStreak() {
+  if (!state.active||!state.streakStart) return;
+  const days=Math.floor((Date.now()-state.streakStart)/86400000);
+  if (days>state.streak) {
+    state.streak=days;
+    const [sh]=config.timeStart.split(':').map(Number);
+    const [eh]=config.timeEnd.split(':').map(Number);
+    state.hoursProtected=Math.round(state.streak*(eh>=sh?eh-sh:24-sh+eh)); ss();
+  }
+}
+
+// ── PWA INSTALL ──────────────────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById("install-btn");
+  if (btn) btn.style.display = "flex";
+});
+window.addEventListener("appinstalled", () => {
+  const btn = document.getElementById("install-btn");
+  if (btn) btn.style.display = "none";
+});
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+  } else {
+    toast("Abre esta página en Chrome para instalar");
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+updateUI();
+tickStreak();
+setInterval(()=>{ tickStreak(); updateUI(); }, 1000);
+</script>
+</body>
+</html>
